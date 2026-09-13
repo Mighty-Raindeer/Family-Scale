@@ -1,0 +1,73 @@
+<label class="weight-field">
+  <span>Weight <em>(optional)</em></span>
+  <span class="weight-input">
+    <input type="number" name="weight" id="weight" inputmode="decimal" step="0.1" min="1" max="800"
+           placeholder="{{ '165.2' if person.unit == 'lb' else '75.0' }}"
+           value="{{ weight_value if weight_value is defined else '' }}">
+    <span class="unit" id="weight-unit">{{ person.unit }}</span>
+  </span>
+  {% if latest_weight is defined and latest_weight %}
+  <span class="hint">Last weight: {{ latest_weight.weight_kg|weight(person.unit) }} · {{ latest_weight.recorded_at|localtime }}</span>
+  {% endif %}
+</label>
+
+<label class="waist-field">
+  <span>Waist <em>(optional)</em></span>
+  <span class="waist-input">
+    <input type="number" name="waist" id="waist" inputmode="decimal" step="0.1" min="1" max="200"
+           placeholder="{{ '34.0' if person.unit == 'lb' else '86' }}"
+           value="{{ waist_value if waist_value is defined else '' }}">
+    <span class="unit" id="waist-unit">{{ 'in' if person.unit == 'lb' else 'cm' }}</span>
+  </span>
+  {% if latest_waist is defined and latest_waist %}
+  <span class="hint">Last waist: {{ latest_waist.waist_cm|waist(person.unit) }} · {{ latest_waist.recorded_at|localtime }}</span>
+  {% endif %}
+</label>
+
+<details class="extras" id="log-extras" {% if extras_open %}open{% endif %}>
+  <summary>Time, fasting, or a note</summary>
+
+  <label>
+    <span>When</span>
+    <input type="datetime-local" name="recorded_at" value="{{ recorded_at_value }}">
+  </label>
+
+  <fieldset class="interval">
+    <legend>Since the last weigh-in</legend>
+    <p class="hint">Skip this unless you care. Fasting is only used for a metabolism estimate.</p>
+    <div class="toggles" id="interval-toggles">
+      <label class="toggle">
+        <input type="radio" name="interval" value="" {% if not interval %}checked{% endif %}>
+        <span>Not tracking</span>
+      </label>
+      <label class="toggle">
+        <input type="radio" name="interval" value="fasting" {% if interval == 'fasting' %}checked{% endif %}>
+        <span>Fasting (no food, drink, or bathroom)</span>
+      </label>
+      <label class="toggle">
+        <input type="radio" name="interval" value="some" {% if interval == 'some' %}checked{% endif %}>
+        <span>Something happened</span>
+      </label>
+    </div>
+    <div class="toggles sub-toggles" id="interval-some" {% if interval != 'some' %}hidden{% endif %}>
+      <label class="toggle">
+        <input type="checkbox" name="had_food" {% if measurement is defined and measurement.had_food %}checked{% endif %}>
+        <span>Ate</span>
+      </label>
+      <label class="toggle">
+        <input type="checkbox" name="had_water" {% if measurement is defined and measurement.had_water %}checked{% endif %}>
+        <span>Drank</span>
+      </label>
+      <label class="toggle">
+        <input type="checkbox" name="used_bathroom" {% if measurement is defined and measurement.used_bathroom %}checked{% endif %}>
+        <span>Bathroom</span>
+      </label>
+    </div>
+  </fieldset>
+
+  <label class="notes-field">
+    <span>Note</span>
+    <input type="text" name="notes" maxlength="200" placeholder="Anything you want to remember"
+           value="{{ measurement.notes if measurement is defined and measurement.notes else '' }}">
+  </label>
+</details>

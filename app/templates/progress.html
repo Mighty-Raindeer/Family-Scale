@@ -1,0 +1,353 @@
+{% extends "base.html" %}
+{% block title %}Progress · Family Scale{% endblock %}
+{% block content %}
+<section class="page">
+  <header class="page-head">
+    <p class="eyebrow">Progress</p>
+    <h1>{% if selected %}{{ selected.name }}{% else %}Progress{% endif %}</h1>
+    <p class="lede">Gaps are fine. The graphs only use days you actually logged.</p>
+  </header>
+
+  {% if people %}
+  <form method="get" class="filters" id="progress-filters">
+    <label>
+      <span>Person</span>
+      <select name="person" id="progress-person">
+        {% for person in people %}
+        <option value="{{ person.id }}" {% if selected and selected.id == person.id %}selected{% endif %}>{{ person.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <fieldset class="range-pills">
+      <legend>Range</legend>
+      {% for key, label in [('7', '7 days'), ('30', '30 days'), ('90', '90 days'), ('all', 'All')] %}
+      <label>
+        <input type="radio" name="range" value="{{ key }}" {% if range_key == key %}checked{% endif %}>
+        <span>{{ label }}</span>
+      </label>
+      {% endfor %}
+    </fieldset>
+  </form>
+  {% endif %}
+
+  {% if selected and (latest_weight or latest_waist or activities or workouts or checkins or meals) %}
+  {% if latest_weight or latest_waist %}
+  <div class="stat-row">
+    <article class="stat">
+      <p class="eyebrow">Latest weight</p>
+      {% if latest_weight %}
+      <p class="stat-value">{{ latest_weight.weight_kg|weight_num(selected.unit) }} <small>{{ selected.unit }}</small></p>
+      <p class="hint">{{ latest_weight.recorded_at|localtime }}</p>
+      {% else %}
+      <p class="stat-value">—</p>
+      <p class="hint">No weight in this range</p>
+      {% endif %}
+    </article>
+    <article class="stat">
+      <p class="eyebrow">7-day average</p>
+      {% if avg7 is not none %}
+      <p class="stat-value">{{ avg7|weight_num(selected.unit) }} <small>{{ selected.unit }}</small></p>
+      <p class="hint">Days with a weight only</p>
+      {% else %}
+      <p class="stat-value">—</p>
+      <p class="hint">Need two weigh-ins in 7 days</p>
+      {% endif %}
+    </article>
+    <article class="stat">
+      <p class="eyebrow">{% if vs_goal is not none %}Vs goal{% else %}In this range{% endif %}</p>
+      {% if vs_goal is not none %}
+      <p class="stat-value {% if vs_goal > 0 %}up{% elif vs_goal < 0 %}down{% endif %}">
+        {% if selected.unit == 'lb' %}{{ '%+.1f'|format(vs_goal * 2.2046226218) }}{% else %}{{ '%+.2f'|format(vs_goal) }}{% endif %}
+        <small>{{ selected.unit }}</small>
+      </p>
+      <p class="hint">goal {{ selected.goal_weight_kg|weight(selected.unit) }}</p>
+      {% elif delta is not none %}
+      <p class="stat-value {% if delta < 0 %}down{% elif delta > 0 %}up{% endif %}">
+        {% if selected.unit == 'lb' %}{{ '%+.1f'|format(delta * 2.2046226218) }}{% else %}{{ '%+.2f'|format(delta) }}{% endif %}
+        <small>{{ selected.unit }}</small>
+      </p>
+      <p class="hint">first to last weight in view</p>
+      {% else %}
+      <p class="stat-value">—</p>
+      <p class="hint">Need more than one weight</p>
+      {% endif %}
+    </article>
+  </div>
+  {% endif %}
+
+  {% if latest_waist %}
+  <p class="hint waist-line">Latest waist {{ latest_waist.waist_cm|waist(selected.unit) }} · {{ latest_waist.recorded_at|localtime }}</p>
+  {% endif %}
+
+  {% if weight_count or waist_count %}
+  <div class="chart-card">
+    <canvas id="weight-chart" height="280" aria-label="Progress over time"></canvas>
+  </div>
+  {% endif %}
+
+  {% if latest_weight or latest_waist %}
+  <p class="export-row">
+    <a href="{{ url_for('main.export_csv', person=selected.id, range=range_key) }}">Download body CSV</a>
+  </p>
+  {% endif %}
+
+  {% if activities %}
+  <section class="block">
+    <h2>Movement</h2>
+    {% if recent_week_distance is not none %}
+    <p class="hint">This week so far: {{ '%.2f'|format(recent_week_distance) }} {{ 'mi' if selected.unit == 'lb' else 'km' }} (days with a distance).</p>
+    {% endif %}
+    {% if weeks %}
+    <div class="chart-card">
+      <canvas id="miles-chart" height="220" aria-label="Weekly distance"></canvas>
+    </div>
+    {% endif %}
+    {% if activities %}
+    <div class="table-wrap">
+      <table class="history">
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>Kind</th>
+            <th>Distance</th>
+            <th>Time</th>
+            <th>Pace</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in activities %}
+          <tr>
+            <td>{{ row.started_at|localtime }}</td>
+            <td>{{ row.kind }}{% if row.rpe %} · {{ row.rpe }}{% endif %}{% if row.notes %}<span class="hint">{{ row.notes }}</span>{% endif %}</td>
+            <td>{{ row.distance_m|distance(selected.unit) }}</td>
+            <td>{{ row.duration_s|duration }}</td>
+            <td>{{ row.distance_m|pace(row.duration_s, selected.unit) }}</td>
+            <td>
+              <a href="{{ url_for('main.edit_activity', activity_id=row.id) }}">Edit</a>
+              <form method="post" action="{{ url_for('main.delete_activity', activity_id=row.id, range=range_key) }}" onsubmit="return confirm('Remove this entry?');">
+                <button type="submit" class="linkish">Remove</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {% if checkins %}
+  <section class="block">
+    <h2>Days</h2>
+    {% if sleep_avg is not none %}
+    <p class="hint">Sleep average in this range: {{ '%.1f'|format(sleep_avg) }} h (nights with a number only).</p>
+    {% endif %}
+    <div class="table-wrap">
+      <table class="history">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Sleep</th>
+            <th>Energy</th>
+            <th>Sore</th>
+            <th>Mood</th>
+            <th>Steps</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in checkins %}
+          <tr>
+            <td>{{ row.on_date.strftime("%b %-d") }}{% if row.notes %}<span class="hint">{{ row.notes }}</span>{% endif %}</td>
+            <td>{% if row.sleep_h is not none %}{{ row.sleep_h|round(1) }}h{% if row.sleep_quality %} · {{ row.sleep_quality }}{% endif %}{% else %}—{% endif %}</td>
+            <td>{{ row.energy or "—" }}</td>
+            <td>{{ row.soreness or "—" }}</td>
+            <td>{{ row.mood or "—" }}</td>
+            <td>{{ row.steps if row.steps is not none else "—" }}</td>
+            <td>
+              <a href="{{ url_for('main.edit_checkin', checkin_id=row.id) }}">Edit</a>
+              <form method="post" action="{{ url_for('main.delete_checkin', checkin_id=row.id, range=range_key) }}" onsubmit="return confirm('Remove this day?');">
+                <button type="submit" class="linkish">Remove</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if meals %}
+  <section class="block">
+    <h2>Meals</h2>
+    <p class="hint">
+      {% if meal_counts.light or meal_counts.normal or meal_counts.heavy %}
+        {{ meal_counts.light }} light · {{ meal_counts.normal }} normal · {{ meal_counts.heavy }} heavy
+      {% else %}
+        Sizes were left blank — that’s fine.
+      {% endif %}
+    </p>
+    <div class="table-wrap">
+      <table class="history">
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>Meal</th>
+            <th>Size</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in meals %}
+          <tr>
+            <td>{{ row.eaten_at|localtime }}</td>
+            <td>{{ row.slot }}{% if row.notes %}<span class="hint">{{ row.notes }}</span>{% endif %}</td>
+            <td>{{ row.size or "—" }}</td>
+            <td>
+              <a href="{{ url_for('main.edit_meal', meal_id=row.id) }}">Edit</a>
+              <form method="post" action="{{ url_for('main.delete_meal', meal_id=row.id, range=range_key) }}" onsubmit="return confirm('Remove this meal?');">
+                <button type="submit" class="linkish">Remove</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if workouts %}
+  <section class="block">
+    <h2>Lifts</h2>
+    {% if last_lifts %}
+    <p class="hint">Last time you logged each exercise in this range.</p>
+    <ul class="metab-list">
+      {% for name, workout, item in last_lifts %}
+      <li class="metab-item">
+        <strong>{{ name }}</strong>
+        <span class="hint">{{ workout.started_at|localtime }}
+          {% if item.reps %} · {{ item.reps }} reps{% endif %}
+          {% if item.weight_kg is not none %} · {{ item.weight_kg|weight(selected.unit) }}{% endif %}
+        </span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% for workout in workouts %}
+    <article class="metab-item">
+      <div>
+        <strong>{{ workout.title or "Lift" }}</strong>
+        <span class="hint">{{ workout.started_at|localtime }}</span>
+      </div>
+      {% if workout.notes %}<p class="hint">{{ workout.notes }}</p>{% endif %}
+      {% if workout.sets %}
+      <ul class="set-history">
+        {% for item in workout.sets %}
+        <li>
+          {{ item.name or "Set" }}
+          {% if item.reps %} · {{ item.reps }}{% endif %}
+          {% if item.weight_kg is not none %} · {{ item.weight_kg|weight(selected.unit) }}{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      <p>
+        <a href="{{ url_for('main.edit_workout', workout_id=workout.id) }}">Edit</a>
+        <form method="post" action="{{ url_for('main.delete_workout', workout_id=workout.id, range=range_key) }}" onsubmit="return confirm('Remove this lift?');">
+          <button type="submit" class="linkish">Remove</button>
+        </form>
+      </p>
+    </article>
+    {% endfor %}
+  </section>
+  {% endif %}
+  {% elif selected %}
+  <div class="empty-card">
+    <h2>Nothing in this range</h2>
+    <p><a href="{{ url_for('main.log_weight', person=selected.id) }}">Log whatever you have</a> — weight, a run, a lift, sleep, a meal, or a note.</p>
+  </div>
+  {% else %}
+  <div class="empty-card">
+    <h2>Add a person first</h2>
+    <p><a href="{{ url_for('main.log_weight') }}">Start on the log page.</a></p>
+  </div>
+  {% endif %}
+
+  {% if estimates %}
+  <section class="block">
+    <h2>Fasting metabolism</h2>
+    <p class="hint">Only pairs you marked as fasting, with a weight on both ends.</p>
+    <ul class="metab-list">
+      {% for current, previous, estimate in estimates %}
+      <li class="metab-item is-good">
+        <div>
+          <strong>{{ current.recorded_at|localtime }}</strong>
+          <span class="hint">{{ estimate.hours|round(1) }} h from {{ previous.recorded_at|localtime }}</span>
+        </div>
+        <p class="metab-kcal">{{ estimate.kcal_per_day|round|int }} <small>kcal/day</small></p>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if measurements %}
+  <section class="block">
+    <h2>History</h2>
+    <div class="table-wrap">
+      <table class="history">
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>Weight</th>
+            <th>Waist</th>
+            <th></th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in measurements %}
+          <tr>
+            <td>{{ row.recorded_at|localtime }}</td>
+            <td>{{ row.weight_kg|weight(selected.unit) }}</td>
+            <td>{{ row.waist_cm|waist(selected.unit) }}</td>
+            <td class="flags">
+              {% if row.is_fasting_interval %}<span class="tag tag-fast">Fasting</span>{% endif %}
+              {% if row.interval_known and row.had_food %}<span class="tag">Food</span>{% endif %}
+              {% if row.interval_known and row.had_water %}<span class="tag">Drink</span>{% endif %}
+              {% if row.interval_known and row.used_bathroom %}<span class="tag">Bathroom</span>{% endif %}
+              {% if row.notes %}<span class="hint">{{ row.notes }}</span>{% endif %}
+            </td>
+            <td>
+              <a href="{{ url_for('main.edit_measurement', measurement_id=row.id) }}">Edit</a>
+              <form method="post" action="{{ url_for('main.delete_measurement', measurement_id=row.id, range=range_key) }}" onsubmit="return confirm('Remove this entry?');">
+                <button type="submit" class="linkish">Remove</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+{% if selected and (weight_count or waist_count or weeks) %}
+<script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
+<script>
+  window.FS_PROGRESS = {
+    personId: {{ selected.id }},
+    range: {{ range_key|tojson }},
+    api: {{ url_for('main.progress_api', person_id=selected.id, range=range_key)|tojson }},
+    milesApi: {{ url_for('main.miles_api', person_id=selected.id, range=range_key)|tojson }}
+  };
+</script>
+{% endif %}
+{% endblock %}

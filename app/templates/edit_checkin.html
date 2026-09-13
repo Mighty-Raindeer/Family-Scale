@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Edit day · Family Scale{% endblock %}
+{% block content %}
+<section class="page">
+  <header class="page-head">
+    <p class="eyebrow">{{ person.name }}</p>
+    <h1>Edit day</h1>
+    <p class="lede">Blank fields keep whatever is already saved.</p>
+  </header>
+  <form method="post" class="log-form">
+    {% include "_day_fields.html" %}
+    <div class="row-actions">
+      <button type="submit" class="primary">Save changes</button>
+      <a class="ghost" href="{{ url_for('main.progress', person=person.id) }}">Cancel</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

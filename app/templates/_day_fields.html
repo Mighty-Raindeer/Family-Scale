@@ -1,0 +1,48 @@
+<p class="hint">This updates today’s card. Come back later and add whatever you skipped.</p>
+
+<div class="grid-2">
+  <label class="waist-field">
+    <span>Sleep <em>(optional)</em></span>
+    <span class="waist-input">
+      <input type="number" name="sleep_h" inputmode="decimal" step="0.1" min="0" max="24"
+             placeholder="7.5"
+             value="{{ checkin.sleep_h if checkin and checkin.sleep_h is not none else '' }}">
+      <span class="unit">hr</span>
+    </span>
+  </label>
+  <label class="waist-field">
+    <span>Steps <em>(optional)</em></span>
+    <span class="waist-input">
+      <input type="number" name="steps" inputmode="numeric" step="1" min="0" max="200000"
+             placeholder="8000"
+             value="{{ checkin.steps if checkin and checkin.steps is not none else '' }}">
+      <span class="unit">steps</span>
+    </span>
+  </label>
+</div>
+
+{% with field='sleep_quality', label='Sleep quality', value=checkin.sleep_quality if checkin else none %}
+{% include "_scale.html" %}
+{% endwith %}
+{% with field='energy', label='Energy', value=checkin.energy if checkin else none %}
+{% include "_scale.html" %}
+{% endwith %}
+{% with field='soreness', label='Soreness', value=checkin.soreness if checkin else none %}
+{% include "_scale.html" %}
+{% endwith %}
+{% with field='mood', label='Mood', value=checkin.mood if checkin else none %}
+{% include "_scale.html" %}
+{% endwith %}
+
+<details class="extras" {% if extras_open %}open{% endif %}>
+  <summary>When or a note</summary>
+  <label>
+    <span>When</span>
+    <input type="datetime-local" name="recorded_at" value="{{ recorded_at_value }}">
+  </label>
+  <label class="notes-field">
+    <span>Note</span>
+    <input type="text" name="notes" maxlength="200" placeholder="Restless, long day, felt good"
+           value="{{ checkin.notes if checkin and checkin.notes else '' }}">
+  </label>
+</details>

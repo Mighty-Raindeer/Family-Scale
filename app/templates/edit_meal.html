@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Edit meal · Family Scale{% endblock %}
+{% block content %}
+<section class="page">
+  <header class="page-head">
+    <p class="eyebrow">{{ person.name }}</p>
+    <h1>Edit meal</h1>
+  </header>
+  <form method="post" class="log-form">
+    {% include "_eat_fields.html" %}
+    <div class="row-actions">
+      <button type="submit" class="primary">Save changes</button>
+      <a class="ghost" href="{{ url_for('main.progress', person=person.id) }}">Cancel</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

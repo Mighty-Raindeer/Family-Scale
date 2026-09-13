@@ -1,0 +1,50 @@
+<label>
+  <span>Title <em>(optional)</em></span>
+  <input type="text" name="title" maxlength="80" placeholder="Tuesday lift"
+         value="{{ workout.title if workout is defined and workout.title else '' }}">
+</label>
+
+<div class="set-list" id="set-list">
+  <div class="set-head">
+    <span>Exercise</span>
+    <span>Reps</span>
+    <span>Weight</span>
+  </div>
+  {% if workout is defined and workout.sets %}
+    {% for item in workout.sets %}
+    <div class="set-row">
+      <input type="text" name="set_name" list="exercise-list" placeholder="Squat" value="{{ item.name or '' }}">
+      <input type="number" name="set_reps" min="1" max="200" step="1" placeholder="8" value="{{ item.reps if item.reps is not none else '' }}">
+      <input type="number" name="set_weight" min="0" max="800" step="0.5" placeholder="{{ person.unit }}"
+             value="{% if item.weight_kg is not none %}{{ '%.1f'|format(item.weight_kg * 2.2046226218) if person.unit == 'lb' else '%.1f'|format(item.weight_kg) }}{% endif %}">
+    </div>
+    {% endfor %}
+  {% else %}
+    {% for _ in range(empty_sets if empty_sets is defined else 3) %}
+    <div class="set-row">
+      <input type="text" name="set_name" list="exercise-list" placeholder="Squat">
+      <input type="number" name="set_reps" min="1" max="200" step="1" placeholder="8">
+      <input type="number" name="set_weight" min="0" max="800" step="0.5" placeholder="{{ person.unit }}">
+    </div>
+    {% endfor %}
+  {% endif %}
+</div>
+<datalist id="exercise-list">
+  {% for name in exercises %}
+  <option value="{{ name }}"></option>
+  {% endfor %}
+</datalist>
+<button type="button" class="ghost" id="add-set">Add a set</button>
+
+<details class="extras" {% if extras_open %}open{% endif %}>
+  <summary>When or a note</summary>
+  <label>
+    <span>When</span>
+    <input type="datetime-local" name="recorded_at" value="{{ recorded_at_value }}">
+  </label>
+  <label class="notes-field">
+    <span>Note</span>
+    <input type="text" name="notes" maxlength="200" placeholder="Felt strong, stopped early…"
+           value="{{ workout.notes if workout is defined and workout.notes else '' }}">
+  </label>
+</details>

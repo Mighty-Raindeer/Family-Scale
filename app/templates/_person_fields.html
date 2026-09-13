@@ -1,0 +1,50 @@
+<label>
+  <span>Name</span>
+  <input type="text" name="name" required maxlength="80" value="{{ person.name if person else '' }}" placeholder="Name">
+</label>
+<label>
+  <span>Weight unit</span>
+  <select name="unit">
+    <option value="lb" {% if not person or person.unit == 'lb' %}selected{% endif %}>Pounds (lb)</option>
+    <option value="kg" {% if person and person.unit == 'kg' %}selected{% endif %}>Kilograms (kg)</option>
+  </select>
+</label>
+
+<details class="extras">
+  <summary>Optional details</summary>
+  <label>
+    <span>Color</span>
+    <select name="color">
+      {% for color in colors %}
+      <option value="{{ color }}" {% if (person and person.color == color) or (not person and loop.first) %}selected{% endif %}>
+        {{ color }}
+      </option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>
+    <span>Goal weight <em>(optional)</em></span>
+    <input type="number" name="goal_weight" step="0.1" min="1" max="800"
+           placeholder="Leave blank if you do not have one"
+           value="{% if person and person.goal_weight_kg %}{{ '%.1f'|format(person.goal_weight_kg * 2.2046226218) if person.unit == 'lb' else '%.2f'|format(person.goal_weight_kg) }}{% endif %}">
+  </label>
+  <label>
+    <span>Height <em>(optional)</em></span>
+    <input type="number" name="height" step="0.1" min="1" max="300"
+           placeholder="inches if pounds, cm if kilos"
+           value="{% if person and person.height_cm %}{{ '%.1f'|format(person.height_cm * 0.3937007874) if person.unit == 'lb' else '%.0f'|format(person.height_cm) }}{% endif %}">
+  </label>
+  <label>
+    <span>Birth year <em>(optional)</em></span>
+    <input type="number" name="birth_year" min="1900" max="2026"
+           value="{{ person.birth_year if person and person.birth_year else '' }}">
+  </label>
+  <label>
+    <span>Sex <em>(optional, formula comparison only)</em></span>
+    <select name="sex">
+      <option value="unspecified" {% if not person or person.sex == 'unspecified' %}selected{% endif %}>Prefer not to say</option>
+      <option value="female" {% if person and person.sex == 'female' %}selected{% endif %}>Female</option>
+      <option value="male" {% if person and person.sex == 'male' %}selected{% endif %}>Male</option>
+    </select>
+  </label>
+</details>

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}People · Family Scale{% endblock %}
+{% block content %}
+<section class="page">
+  <header class="page-head">
+    <p class="eyebrow">Household</p>
+    <h1>People</h1>
+    <p class="lede">Name is enough. Height, goal, and the rest are optional and can wait.</p>
+  </header>
+
+  <details class="panel" {% if not people %}open{% endif %}>
+    <summary>Add a person</summary>
+    <form method="post" class="stack">
+      <input type="hidden" name="action" value="add">
+      {% with person=none %}
+      {% include "_person_fields.html" %}
+      {% endwith %}
+      <button type="submit" class="primary">Add person</button>
+    </form>
+  </details>
+
+  {% for person in people %}
+  <details class="person-card">
+    <summary>
+      <span class="avatar" style="--c: {{ person.color }}">{{ person.name[:1] }}</span>
+      <span>
+        <strong>{{ person.name }}</strong>
+        <span class="hint">{{ person.measurements|length }} entr{% if person.measurements|length != 1 %}ies{% else %}y{% endif %} · {{ person.unit }}</span>
+      </span>
+    </summary>
+    <form method="post" class="stack">
+      <input type="hidden" name="action" value="save">
+      <input type="hidden" name="person_id" value="{{ person.id }}">
+      {% include "_person_fields.html" %}
+      <div class="row-actions">
+        <button type="submit" class="primary">Save</button>
+      </div>
+    </form>
+    <form method="post" class="danger-form" onsubmit="return confirm('Remove {{ person.name }} and all of their weigh-ins?');">
+      <input type="hidden" name="action" value="delete">
+      <input type="hidden" name="person_id" value="{{ person.id }}">
+      <button type="submit" class="danger">Remove {{ person.name }}</button>
+    </form>
+  </details>
+  {% endfor %}
+</section>
+{% endblock %}

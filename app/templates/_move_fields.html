@@ -1,0 +1,50 @@
+<fieldset class="person-picker">
+  <legend>What kind</legend>
+  <div class="person-row">
+    {% for item in activity_types %}
+    <label class="person-chip">
+      <input type="radio" name="activity_type" value="{{ item }}"
+             {% if (activity is defined and activity.kind == item) or (activity is not defined and item == 'run') %}checked{% endif %}>
+      <span class="person-name">{{ item }}</span>
+    </label>
+    {% endfor %}
+  </div>
+</fieldset>
+
+<div class="grid-2">
+  <label class="waist-field">
+    <span>Distance <em>(optional)</em></span>
+    <span class="waist-input">
+      <input type="number" name="distance" inputmode="decimal" step="0.01" min="0.01" max="200"
+             placeholder="{{ '3.2' if person.unit == 'lb' else '5.0' }}"
+             value="{{ distance_value if distance_value is defined else '' }}">
+      <span class="unit">{{ 'mi' if person.unit == 'lb' else 'km' }}</span>
+    </span>
+  </label>
+  <label class="waist-field">
+    <span>Time <em>(optional)</em></span>
+    <span class="waist-input">
+      <input type="text" name="duration" inputmode="decimal" placeholder="32 or 32:15"
+             value="{{ duration_value if duration_value is defined else '' }}">
+      <span class="unit">min</span>
+    </span>
+  </label>
+</div>
+
+<details class="extras" {% if extras_open %}open{% endif %}>
+  <summary>When, effort, or a note</summary>
+  <label>
+    <span>When</span>
+    <input type="datetime-local" name="recorded_at" value="{{ recorded_at_value }}">
+  </label>
+  <label>
+    <span>How hard <em>(optional, 1–10)</em></span>
+    <input type="number" name="rpe" min="1" max="10" step="1"
+           value="{{ activity.rpe if activity is defined and activity.rpe else '' }}">
+  </label>
+  <label class="notes-field">
+    <span>Note</span>
+    <input type="text" name="notes" maxlength="200" placeholder="Easy loop, hills, walked the last bit"
+           value="{{ activity.notes if activity is defined and activity.notes else '' }}">
+  </label>
+</details>

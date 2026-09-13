@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Log · Family Scale{% endblock %}
+{% block content %}
+<section class="page">
+  <header class="page-head">
+    <p class="eyebrow">Log</p>
+    <h1>What do you have?</h1>
+    <p class="lede">Pick one thing. Fill in only what you measured.</p>
+  </header>
+
+  {% if not people %}
+  <div class="empty-card">
+    <h2>Add the first person</h2>
+    <p>Name is enough. You can add height or a goal later.</p>
+  </div>
+  {% endif %}
+
+  {% if people %}
+  <nav class="kind-pills" aria-label="What to log">
+    <a href="{{ url_for('main.log_weight', person=selected.id if selected else None, kind='body') }}" class="{% if kind == 'body' %}is-active{% endif %}">Body</a>
+    <a href="{{ url_for('main.log_weight', person=selected.id if selected else None, kind='move') }}" class="{% if kind == 'move' %}is-active{% endif %}">Move</a>
+    <a href="{{ url_for('main.log_weight', person=selected.id if selected else None, kind='lift') }}" class="{% if kind == 'lift' %}is-active{% endif %}">Lift</a>
+    <a href="{{ url_for('main.log_weight', person=selected.id if selected else None, kind='day') }}" class="{% if kind == 'day' %}is-active{% endif %}">Day</a>
+    <a href="{{ url_for('main.log_weight', person=selected.id if selected else None, kind='eat') }}" class="{% if kind == 'eat' %}is-active{% endif %}">Eat</a>
+  </nav>
+
+  <form method="post" class="log-form" id="log-form">
+    <input type="hidden" name="action" value="{% if kind == 'move' %}log_move{% elif kind == 'lift' %}log_lift{% elif kind == 'day' %}log_day{% elif kind == 'eat' %}log_eat{% else %}log{% endif %}">
+    <input type="hidden" name="kind" value="{{ kind }}">
+    <input type="hidden" name="person_id" value="{{ selected.id if selected else '' }}">
+
+    <fieldset class="person-picker">
+      <legend>Who</legend>
+      <div class="person-row">
+        {% for person in people %}
+        <a href="{{ url_for('main.log_weight', person=person.id, kind=kind) }}"
+           class="person-chip {% if selected and selected.id == person.id %}is-selected{% endif %}"
+           data-person="{{ person.id }}" data-unit="{{ person.unit }}">
+          <span class="avatar" style="--c: {{ person.color }}">{{ person.name[:1] }}</span>
+          <span class="person-name">{{ person.name }}</span>
+        </a>
+        {% endfor %}
+        <button type="button" class="person-chip add-chip" id="toggle-add-person">
+          <span class="avatar add">+</span>
+          <span class="person-name">Add</span>
+        </button>
+      </div>
+    </fieldset>
+
+    {% if today or today_activities or today_workouts or today_checkin or today_meals %}
+    <p class="today-pill">
+      Today:
+      {% for row in today %}
+        {% if row.has_weight %}{{ row.weight_kg|weight(selected.unit) }}{% endif %}
+        {% if row.has_waist %}{{ row.waist_cm|waist(selected.unit) }}{% endif %}
+        {% if not row.has_weight and not row.has_waist %}note{% endif %}{% if not loop.last %}; {% endif %}
+      {% endfor %}
+      {% if today and (today_activities or today_workouts or today_checkin or today_meals) %}; {% endif %}
+      {% for row in today_activities %}
+        {{ row.kind }}{% if row.distance_m %} {{ row.distance_m|distance(selected.unit) }}{% endif %}{% if not loop.last %}; {% endif %}
+      {% endfor %}
+      {% if today_activities and (today_workouts or today_checkin or today_meals) %}; {% endif %}
+      {% for row in today_workouts %}
+        lift{% if row.sets %} ({{ row.sets|length }}){% endif %}{% if not loop.last %}; {% endif %}
+      {% endfor %}
+      {% if today_workouts and (today_checkin or today_meals) %}; {% endif %}
+      {% if today_checkin %}
+        day{% if today_checkin.sleep_h is not none %} {{ today_checkin.sleep_h|round(1) }}h{% endif %}
+        {% if today_checkin.energy %} e{{ today_checkin.energy }}{% endif %}
+      {% endif %}
+      {% if today_checkin and today_meals %}; {% endif %}
+      {% for row in today_meals %}
+        {% if row.size %}{{ row.size }} {% endif %}{{ row.slot }}{% if not loop.last %}; {% endif %}
+      {% endfor %}
+    </p>
+    {% endif %}
+
+    {% if selected and kind == 'body' %}
+      {% with person=selected, interval='' %}
+      {% include "_entry_fields.html" %}
+      {% endwith %}
+    {% elif selected and kind == 'move' %}
+      {% with person=selected %}
+      {% include "_move_fields.html" %}
+      {% endwith %}
+    {% elif selected and kind == 'lift' %}
+      {% with person=selected %}
+      {% include "_lift_fields.html" %}
+      {% endwith %}
+    {% elif selected and kind == 'day' %}
+      {% with person=selected, checkin=today_checkin %}
+      {% include "_day_fields.html" %}
+      {% endwith %}
+    {% elif selected and kind == 'eat' %}
+      {% with person=selected %}
+      {% include "_eat_fields.html" %}
+      {% endwith %}
+    {% endif %}
+
+    {% if selected %}
+    <button type="submit" class="primary">Save</button>
+    {% endif %}
+  </form>
+  {% endif %}
+
+  {% if estimate and logged and kind == 'body' %}
+  <aside class="metab-card {% if estimate.reliable %}is-good{% else %}is-info{% endif %}">
+    <p class="eyebrow">Metabolism</p>
+    {% if estimate.reliable %}
+    <h2>{{ estimate.kcal_per_day|round|int }} kcal/day</h2>
+    <p>From {{ estimate.hours|round(1) }} hours fasting. Lost {{ estimate.loss_g|round|int }} g.</p>
+    {% else %}
+    <p>{{ estimate.reason }}</p>
+    {% endif %}
+  </aside>
+  {% endif %}
+</section>
+
+<section class="panel {% if people %}is-hidden{% endif %}" id="add-person-panel" {% if people %}hidden{% endif %}>
+  <h2>Add a person</h2>
+  <form method="post" class="stack">
+    <input type="hidden" name="action" value="add_person">
+    <input type="hidden" name="kind" value="{{ kind }}">
+    {% with person=none %}
+    {% include "_person_fields.html" %}
+    {% endwith %}
+    <div class="row-actions">
+      <button type="submit" class="primary">Add person</button>
+      {% if people %}
+      <button type="button" class="ghost" id="cancel-add-person">Cancel</button>
+      {% endif %}
+    </div>
+  </form>
+</section>
+{% endblock %}

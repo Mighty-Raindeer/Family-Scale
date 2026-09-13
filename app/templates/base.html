@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Family Scale{% endblock %}</title>
+  <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="top">
+    <a class="brand" href="{{ url_for('main.log_weight') }}">
+      <span class="brand-mark" aria-hidden="true"></span>
+      Family Scale
+    </a>
+    <nav class="nav" aria-label="Primary">
+      <a href="{{ url_for('main.log_weight', person=selected.id if selected else None, kind=request.args.get('kind')) }}" class="{% if request.endpoint == 'main.log_weight' %}is-active{% endif %}">Log</a>
+      <a href="{{ url_for('main.progress', person=selected.id if selected else None) }}" class="{% if request.endpoint == 'main.progress' %}is-active{% endif %}">Progress</a>
+      <a href="{{ url_for('main.people') }}" class="{% if request.endpoint == 'main.people' %}is-active{% endif %}">People</a>
+    </nav>
+  </header>
+
+  <main id="main" class="main">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <ul class="flashes" role="status">
+        {% for category, message in messages %}
+        <li class="flash flash-{{ category }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
