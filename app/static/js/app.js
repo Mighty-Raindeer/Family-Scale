@@ -128,20 +128,35 @@
           });
         }
 
+        function sameDay(a, b) {
+          return a && b && a.toDateString() === b.toDateString();
+        }
         const scales = {
           x: {
             ticks: {
               callback: function (value, index) {
                 const raw = points[index];
                 if (!raw) return "";
-                return new Date(raw.at).toLocaleDateString(undefined, {
+                const when = new Date(raw.at);
+                const prev = points[index - 1] && new Date(points[index - 1].at);
+                const next = points[index + 1] && new Date(points[index + 1].at);
+                const showTime = sameDay(when, prev) || sameDay(when, next);
+                if (showTime) {
+                  return when.toLocaleString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit"
+                  });
+                }
+                return when.toLocaleDateString(undefined, {
                   month: "short",
                   day: "numeric"
                 });
               },
               maxRotation: 0,
               autoSkip: true,
-              maxTicksLimit: 7
+              maxTicksLimit: 8
             },
             grid: { display: false }
           },

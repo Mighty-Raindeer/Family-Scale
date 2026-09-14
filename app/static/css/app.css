@@ -359,7 +359,11 @@ input[type="text"], input[type="number"], select {
 .stat-value small { font-size: 0.95rem; color: var(--muted); }
 .stat-value.down { color: var(--good); }
 .stat-value.up { color: var(--clay); }
-.chart-card { margin: 0.4rem 0 1.3rem; }
+.chart-card {
+  margin: 0.4rem 0 1.3rem;
+  height: 280px;
+  position: relative;
+}
 
 .block { margin-top: 1.6rem; }
 .metab-list, .history { width: 100%; }
